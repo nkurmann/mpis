@@ -1,0 +1,102 @@
+/* CSS reset */
+body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, form, fieldset, input, textarea, p, blockquote, th, td {
+	margin: 0;
+	padding: 0;
+}
+html, body {
+	margin: 0;
+	padding: 0;
+}
+
+/* General Demo Style */
+body {
+	font-family: Constantia, Palatino, "Palatino Linotype", "Palatino LT STD", Georgia, serif;
+	background: #fbf8f4 url(../images/bg.jpg) repeat top left;
+	font-weight: 400;
+	font-size: 15px;
+	color: #FFF;
+	overflow-y: scroll;
+	overflow-x: hidden;
+}
+.ie7 body {
+	overflow: hidden;
+}
+a {
+	color: #333;
+	text-decoration: none;
+}
+.container {
+	position: relative;
+	text-align: center;
+}
+
+
+/* Header Style */
+.codrops-top {
+
+	font-family: 'Arial Narrow', Arial, sans-serif;
+	line-height: 24px;
+	font-size: 11px;
+	width: 100%;
+	background: #000;
+	opacity: 1;
+	/*text-transform: uppercase;*/
+	z-index: 9999;
+	position: relative;
+	-moz-box-shadow: 1px 0px 2px #000;
+	-webkit-box-shadow: 1px 0px 2px #000;
+	box-shadow: 1px 0px 2px #000;
+	
+	
+	display: -webkit-flex; /* Safari */
+	/*-webkit-flex-direction: row-reverse; /* Safari 6.1+ */
+
+	display: inline-flex
+	/*flex-direction: row-reverse;	*/
+
+}
+
+.codrops-top div {
+	width: auto;
+	height: auto;
+	min-width: 33%;
+	max-width: 33%;
+	max-height: 200px;
+	margin: 10px;
+	display: inline;
+	text-align: left;
+	max-height: 150px;
+}
+
+.codrops-top div img {
+	max-height: 120px;
+	float: left;
+}
+
+span.right {
+	padding: 20px 10px 10px 10px;
+	float: right;
+	height: 10%;
+	width: 50%;
+}
+.codrops-top span.right a {
+	float: none;
+	display: inline;
+}
+
+.codrops-top span.left {
+	font-size: 20px;
+	padding: 5px 10px 0px 15px;
+	float: left;
+}
+.codrops-top span.left a {
+	padding: 10px 10px 10px 10px;
+	display: inline;
+}
+
+.codrops-top span.left img {
+	vertical-align: top;
+	width: auto;
+	height: 100px;
+	margin-right: 10px;
+}

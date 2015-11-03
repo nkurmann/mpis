@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Ambient Wall</title>
+		<style type="text/css" media="screen">
+			body {
+				    background: #333;
+				margin: 0;
+			}
+			#chart {
+				color: #333;
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				/* bring your own prefixes */
+				transform: translate(-50%, -50%);
+			}
+		</style>
+		<script src="http://localhost/wordpress3/wp-includes/js/raphael.js" type="text/javascript" charset="utf-8"></script>
+		<script src="http://localhost/wordpress3/wp-includes/js/jquery.js" type="text/javascript" charset="utf-8"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script>
+			$(function() {
+				var url = "http://localhost";
+				var socket = io.connect(url +':5000');
+
+				// on connection to server, ask for display's name with an anonymous callback
+				socket.on('connect', function() {
+					// call the server-side function 'adddisplay' and send one parameter (value of prompt)
+					//socket.emit('adddisplay', prompt("What's your name?"));
+					socket.emit('adddisplay', getParam('display'));
+				});
+				socket.on('updateVisualization', function(data) {
+					console.log(data);
+
+					myFunction(data);
+				});
+
+				function myFunction(newData) {
+					$("#chart").html("");
+
+					var width = newData["width"];
+					var height = newData["height"];
+					var leftgutter = newData["leftgutter"];
+					var bottomgutter = newData["bottomgutter"];
+
+					var xs = newData["xs"];
+
+					var ys = newData["ys"];
+
+					var dotLabel = newData["label"];
+					var dotColor = newData["color"];
+					var dotSize = newData["size"];
+
+					var axisx = newData["axisx"];
+
+					var axisy = newData["axisy"];
+
+					// Draw
+					var r = Raphael("chart", width, height), txt = {
+						"font" : '10px Fontin-Sans, Arial',
+						stroke : "none",
+						fill : "#fff"
+					}, X = (width - leftgutter) / axisx.length, Y = (height - bottomgutter) / axisy.length, color = $("#chart").css("color");
+					max = Math.round(X / 2) - 1;
+					/*
+
+					for (var z = 0; z < data.length; z++) {
+
+					data[z] = (data[z] * max * Math.PI);
+
+					}
+					data[40] = 100;*/
+
+					//alert(data.length);
+
+					// $("#test").html(max);
+					// r.rect(0, 0, width, height, 5).attr({fill: "#000", stroke: "none"});
+					for (var i = 0, ii = axisx.length; i < ii; i++) {
+						r.text(leftgutter + X * (i + .5), 294, axisx[i]).attr(txt);
+					}
+					for (var i = 0, ii = axisy.length; i < ii; i++) {
+						r.text(10, Y * (i + .5), axisy[i]).attr(txt);
+					}
+					var o = 0;
+
+					for (var i = 0, ii = axisy.length; i < ii; i++) {
+						for (var j = 0, jj = axisx.length; j < jj; j++) {
+							var RSize = dotSize[o] && Math.min(Math.round(Math.sqrt(dotSize[o] / Math.PI) * 4), max);
+							var RColor = dotColor[o] && Math.min(Math.round(Math.sqrt(dotColor[o] / Math.PI) * 4), max);
+
+							// alert(R);
+							if (RSize) {
+								(function(dx, dy, RSize, value) {
+									var color = "hsb(" + [(1 - dotColor[o]) * .5, 1, .75] + ")";
+
+									var dt = r.circle(dx + 60 + RSize, dy + 10, dotSize[o] * max).attr({
+										stroke : "none",
+										fill : color
+									});
+									if (RSize < 6) {
+										var bg = r.circle(dx + 60 + RSize, dy + 10, 6).attr({
+											stroke : "none",
+											fill : "#000",
+											opacity : .4
+										}).hide();
+									}
+									var lbl = r.text(dx + 60 + RSize, dy + 10, dotLabel[o]).attr({
+										"font" : '10px Fontin-Sans, Arial',
+										stroke : "none",
+										fill : "#fff"
+									}).hide();
+									var dot = r.circle(dx + 60 + RSize, dy + 10, max).attr({
+										stroke : "none",
+										fill : "#000",
+										opacity : 0
+									});
+									dot[0].onmouseover = function() {
+										if (bg) {
+											bg.show();
+										} else {
+											var clr = Raphael.rgb2hsb(color);
+											clr.b = .5;
+											dt.attr("fill", Raphael.hsb2rgb(clr).hex);
+										}
+										lbl.show();
+									};
+									dot[0].onmouseout = function() {
+										if (bg) {
+											bg.hide();
+										} else {
+											dt.attr("fill", color);
+										}
+										lbl.hide();
+									};
+								})(leftgutter + X * (j + .5) - 60 - RSize, Y * (i + .5) - 10, RSize, dotSize[o]);
+							}
+							o++;
+						}
+					}
+				}
+
+				function getParam(name) {
+					name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+					var regexS = "[\\?&]" + name + "=([^&#]*)";
+					var regex = new RegExp(regexS);
+					var results = regex.exec(window.location.href);
+					if (results == null)
+						return "";
+					else
+						return results[1];
+				}
+
+			});
+		</script>
+
+	</head>
+	<body>
+
+		<div id="chart"></div>
+		<div id="test"></div>
+	</body>
+</html>

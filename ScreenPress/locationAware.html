@@ -1,0 +1,355 @@
+<html lang="en-US">
+	<head>
+		<meta charset="UTF-8" />
+		<title>CityTour</title>
+		<meta http-equiv="cleartype" content="on">
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+
+		<style type="text/css">
+			.container {
+				width: 100%;
+				margin: 0 auto;
+				margin-top: 50px;
+			}
+
+			#map_container {
+				position: relative;
+			}
+			#google_map {
+				height: 17%;
+				overflow: hidden;
+				padding-bottom: 22.25%;
+				padding-top: 30px;
+				position: relative;
+			}
+
+			h1 {
+				font-size: 45px;
+				width: 100%;
+				/*text-align: center;*/
+				font-weight: bold;
+				color: black;
+				margin-bottom: 2px;
+				color: #222222;
+				text-shadow: 0 2px 3px #555555;
+				font-family: Tahoma;
+			}
+			#locationInfo {
+				/*font-size: 45px;*/
+				width: 100%;
+				/*text-align: center;*/
+				font-weight: bold;
+				color: black;
+				margin-bottom: 40px;
+				color: #222222;
+				/*text-shadow: 0 2px 3px #555555;*/
+				font-family: Tahoma;
+			}
+		</style>
+		</style>
+		<script type="text/javascript">
+			function getParam(name) {
+				name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+				var regexS = "[\\?&]" + name + "=([^&#]*)";
+				var regex = new RegExp(regexS);
+				var results = regex.exec(window.location.href);
+				if (results == null)
+					return "";
+				else
+					return results[1];
+			}
+		</script>
+
+		<script>
+			var url = "http://localhost";
+			var socket = io.connect(url + ':5000');
+			var mySocket;
+
+			// on connection to server, ask for display's name with an anonymous callback
+			socket.on('connect', function() {
+
+				socket.emit('adddisplay', getParam('display'), getParam('user'));
+
+			});
+			socket.on('socketId', function(socket) {
+				mySocket = socket;
+
+			});
+
+			// Reciving the information when the user is in the vicinity of a place
+			socket.on('pushInfo', function(entery) {
+				console.log(entery["title"]);
+				$('#pushInfo').html("<h1>" + entery["title"] + "</h1><br>" + entery["description"]);
+
+			});
+
+			socket.on('updateMap', function(body) {
+
+				clearMarkers();
+
+				for (var entery in body) {
+					addMyMarkerDetail(body[entery]["lat"], body[entery]["lng"], body[entery]["title"], body[entery]["description"]);
+
+				}
+			});
+
+			// listener, whenever the server emits 'message', this updates the message body
+			socket.on('updatemsg', function(data) {
+				$('#message').html(data);
+			});
+
+		</script>
+
+		<script type="text/javascript"
+		src="http://maps.googleapis.com/maps/api/js?sensor=true&v=3.21"></script>
+		<script type="text/javascript">
+			// Add user
+			function getUserLocation() {
+				navigator.geolocation.getCurrentPosition(addMyUser, handleError);
+			}
+
+			var watchProcess = null;
+			function initiate_watchlocation() {
+				if (watchProcess == null) {
+					watchProcess = navigator.geolocation.watchPosition(addMyUser, handleError);
+				}
+			}
+
+			function stop_watchlocation() {
+				if (watchProcess != null) {
+					navigator.geolocation.clearWatch(watchProcess);
+				}
+			}
+
+			function handleSuccess(position) {
+				//addMyMarker(position);
+				//
+			}
+
+			function handleError(error) {
+				switch(error.code) {
+				case error.PERMISSION_DENIED:
+					alert("User did not share geolocation data");
+					break;
+				case error.POSITION_UNAVAILABLE:
+					alert("Could not detect current position");
+					break;
+				case error.TIMEOUT:
+					alert("Retrieving position timed out");
+					break;
+				default:
+					alert("Unknown Error");
+					break;
+				}
+			}
+
+			// New marker on the map (movable)
+			var geocoder = new google.maps.Geocoder();
+
+			function geocodePosition(pos) {
+				geocoder.geocode({
+					latLng : pos
+				}, function(responses) {
+					if (responses && responses.length > 0) {
+						updateMarkerAddress(responses[0].formatted_address);
+					} else {
+						updateMarkerAddress('Cannot determine address at this location.');
+					}
+				});
+			}
+
+			function updateMarkerStatus(str) {
+				document.getElementById('markerStatus').innerHTML = str;
+			}
+
+			function updateMarkerPosition(latLng) {
+				document.getElementById('info').innerHTML = [latLng.lat(), latLng.lng()].join(', ');
+			}
+
+			function updateMarkerAddress(str) {
+				document.getElementById('address').innerHTML = str;
+			}
+
+			// Google Map old
+
+			var mapCenter = new google.maps.LatLng(45.388622899999994, 8.543993099999966);
+			//Google map Coordinates
+			var map;
+			var markers = [];
+			var mainUsers = [];
+			function initialize()//function initializes Google map
+			{
+				var googleMapOptions = {
+					center : mapCenter, // map center
+					zoom : 15, //zoom level, 0 = earth view to higher value
+					panControl : true, //enable pan Control
+					zoomControl : true, //enable zoom control
+					zoomControlOptions : {
+						style : google.maps.ZoomControlStyle.SMALL //zoom control size
+					},
+					scaleControl : true, // enable scale control
+					mapTypeId : google.maps.MapTypeId.ROADMAP // google map type
+				};
+				map = new google.maps.Map(document.getElementById("google_map"), googleMapOptions);
+				getUserLocation();
+
+			}
+
+			//Update user position into the distribution engine
+			function updatePos2Dist(latLng) {
+				console.log(latLng + "updatePos2Dist");
+				delAllUsers(null);
+				var userName = getParam('user');
+				//alert(latLng);
+				socket.emit('needUserProfile', userName, mySocket, latLng);
+
+			}
+
+
+			socket.on('updateUser', function(data, newLocation) {
+				// console.log(newLocation["H"]+"___")
+				var tempUName;
+				var tempUImage;
+				tempUName = data['title'];
+				tempUImage = data['thumb'];
+				// tempUImage = "http://findicons.com/files/icons/2255/cologne/32/user.png";
+
+				var uIcon = new google.maps.MarkerImage(tempUImage, //url
+				new google.maps.Size(50, 50), //size
+				new google.maps.Point(0, 0), //origin
+				new google.maps.Point(0, 0) //anchor
+				);
+
+				var latLng2 = new google.maps.LatLng(newLocation["G"], newLocation["K"]);
+				// set map center
+				map.setCenter(latLng2);
+				geocodePosition(latLng2);
+				console.log("updateUser" + latLng2);
+				//alert (map.getCenter()+'-'+latlng);
+				var marker = new google.maps.Marker({
+					position : latLng2,
+					map : map,
+					draggable : true,
+					title : tempUName,
+					icon : uIcon
+				});
+				mainUsers.push(marker);
+				geocodePosition(latLng2);
+
+				// Add dragging event listeners.
+				google.maps.event.addListener(marker, 'dragstart', function() {
+					updateMarkerAddress('Dragging...');
+				});
+
+				google.maps.event.addListener(marker, 'drag', function() {
+					updateMarkerStatus('Dragging...');
+					updateMarkerPosition(marker.getPosition());
+				});
+
+				google.maps.event.addListener(marker, 'dragend', function() {
+					console.log("test" + marker.getPosition());
+					updateMarkerStatus('Drag ended');
+					geocodePosition(marker.getPosition());
+					updatePos2Dist(marker.getPosition());
+					map.setCenter(marker.getPosition());
+					mainUsers.push(marker);
+				});
+
+				//Resize Function
+				google.maps.event.addDomListener(window, "resize", function() {
+					var center = map.getCenter();
+					// console.log("test"+ marker.getPosition());
+					google.maps.event.trigger(map, "resize");
+					map.setCenter(marker.getPosition());
+
+				});
+				// delAllUsers(null);
+
+			});
+			function addMyUser(position) {//function that will add marker for showing the user's location
+				// disable the following line (i.e. initiate_watchlocation();) if you want to simulate a scenario
+				initiate_watchlocation();
+
+				var userName = getParam('user');
+				var latLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+
+				updateMarkerPosition(latLng);
+				console.log("test");
+				updatePos2Dist(latLng);
+
+			}
+
+			// Sets the map on all markers in the array.
+			function delAllUsers(map) {
+				console.log("length" + mainUsers.length);
+				for (var i = 0; i < mainUsers.length; i++) {
+					mainUsers[i].setMap(map);
+
+				}
+			}
+
+			function addMyMarkerDetail(lat, lng, title1, description1) {
+				// add marker for the added places
+				var pos1 = new google.maps.LatLng(lat, lng);
+				var marker = new google.maps.Marker({
+					position : pos1,
+					map : map,
+					title : title1,
+					icon : "http://maps.google.com/mapfiles/ms/micons/blue.png"
+				});
+				var infowindow = new google.maps.InfoWindow({
+					content : description1
+				});
+
+				markers.push(marker);
+
+			}
+
+			// Sets the map on all markers in the array.
+			function setAllMap(map) {
+				for (var i = 0; i < markers.length; i++) {
+					markers[i].setMap(map);
+				}
+			}
+
+			// Removes the markers from the map, but keeps them in the array.
+			function clearMarkers() {
+				setAllMap(null);
+			}
+
+			// Shows any markers currently in the array.
+			function showMarkers() {
+				setAllMap(map);
+			}
+		</script>
+
+	</head>
+
+	<body class="single single-playground postid-563" onLoad="initialize()">
+
+		<div id="pushInfo"></div>
+		<div class="container">
+
+			<div id="locationInfo">
+
+				<div id="infoPanel">
+					<b>Marker status:</b>
+					<div id="markerStatus">
+						<i>Click and drag the marker.</i>
+					</div>
+					<b>Current position:</b>
+					<div id="info"></div>
+					<b>Closest matching address:</b>
+					<div id="address"></div>
+				</div>
+			</div>
+			<div id="map_container"></div>
+			<div id="google_map"></div>
+		</div>
+		<div id="google_map" ></div>
+		<br>
+		<br>
+
+	</body>
+</html>
